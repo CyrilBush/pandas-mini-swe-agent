@@ -1,0 +1,67 @@
+name: Package Checks
+
+on:
+  push:
+    branches:
+      - main
+      - 3.0.x
+  pull_request:
+    branches:
+      - main
+      - 3.0.x
+    types: [ labeled, opened, synchronize, reopened ]
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -euox pipefail {0}
+
+
+jobs:
+  optional-dependencies:
+    name: Optional dependencies (${{ matrix.group }})
+    if: >-
+      github.event_name == 'push' ||
+      github.event.label.name == 'Build' ||
+      contains(github.event.pull_request.labels.*.name, 'Build')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        group:
+          - test
+          - pyarrow
+          - performance
+          - computation
+          - fss
+          - aws
+          - gcp
+          - excel
+          - parquet
+          - feather
+          - iceberg
+          - hdf5
+          - spss
+          - postgresql
+          - mysql
+          - sql-other
+          - html
+          - xml
+          - plot
+          - output-formatting
+          - clipboard
+          - compression
+          - timezone
+          - all
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pandas with ${{ matrix.group }} optional dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[${{ matrix.group }}]"
