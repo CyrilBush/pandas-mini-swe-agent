@@ -1,0 +1,92 @@
+name: Code Checks
+
+on:
+  push:
+    branches:
+      - main
+      - 3.0.x
+  pull_request:
+    branches:
+      - main
+      - 3.0.x
+
+defaults:
+  run:
+    shell: bash -euox pipefail {0}
+
+permissions: {}
+
+
+jobs:
+  doctest:
+    name: doctest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup-pixi
+        with:
+          environment: doctests
+
+      - name: Build pandas
+        run: |
+          pixi run --environment doctests build-pandas \
+            --editable \
+            --config-settings=setup-args=-Dwerror=true
+
+      - name: Run doctests
+        run: pixi run --environment doctests ci-doctests
+
+      - name: Run script tests
+        run: pixi run --environment doctests ci-scripts-tests
+
+  type-checking:
+    name: type-checking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup-pixi
+        with:
+          environment: typing
+
+      - name: Build pandas
+        run: |
+          pixi run --environment typing build-pandas \
+            --editable \
+            --config-settings=setup-args=-Dwerror=true
+
+      - name: Run type checking
+        run: pixi run --environment typing ci-typing
+
+  asv-benchmarks:
+    name: asv-benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup-pixi
+        with:
+          environment: asv
+
+      - name: Build pandas
+        run: |
+          pixi run --environment asv build-pandas \
+            --editable \
+            --config-settings=setup-args=-Dwerror=true
+
+      - name: Run ASV benchmarks
+        run: pixi run --environment asv ci-asv
+
+  requirements-dev-text-installable:
+    name: requirements-dev.txt installable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install requirements-dev.txt
+        run: python -m pip install -r requirements-dev.txt
